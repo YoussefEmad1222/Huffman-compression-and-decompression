@@ -17,41 +17,59 @@ class activitySelection {
       this.weight = weight;
     }
   }
-  int recur(activity[] a, int i, int j, int[] dp) {
-    if (i > j)
-      return 0;
-    if (dp[i] != -1)
-      return dp[i];
-    if (i == j) {
-      dp[i] = a[i].weight;
-      return a[i].weight;
-    }
-
-    int ans = recur(a, i + 1, j, dp);
-    for (int k = i + 1 ; k <= j; k++) {
-      if (a[k].start >= a[i].end) {
-        ans = Math.max(ans, a[i].weight + recur(a, k, j, dp));
+ private int getNextAct(activitySelection.activity[] a, int low, int end) {
+    int high = a.length - 1;
+    int mid;
+    while (low <= high) {
+      mid = low + (high - low) / 2;
+      if (a[mid].start >= end) {
+        high = mid - 1;
+      } else {
+        low = mid + 1;
       }
     }
-    return dp[i] = ans;
+
+    return low;
+  }
+ private int activitySelect(activity[] a, int i, int[] dp) {
+    if (i >= a.length) {
+      return 0;
+    }
+    if (dp[i] != -1) {
+      return dp[i];
+    }
+    if (i == a.length - 1) {
+      dp[i] = a[i].weight;
+      return dp[i];
+    }
+    int weightWithoutI = activitySelect(a, i + 1, dp);
+    int weightWithI = a[i].weight + activitySelect(a, getNextAct(a, i + 1, a[i].end), dp); 
+    dp[i] = Math.max(weightWithoutI, weightWithI);
+    return dp[i];
   }
 
-  int activitySel(activity[] a) {
+ 
+
+  private int activitySel(activity[] a) {
     int n = a.length;
     Arrays.sort(a, new Comparator<activity>() {
-      public int compare(activity a1, activity a2) { return a1.end - a2.end; }
+      public int compare(activity a1, activity a2) {
+        if (a1.start == a2.start) {
+          return a1.end - a2.end;  // If start times are equal, sort by end time
+        } else {
+          return a1.start - a2.start;
+        }
+      }
     });
     int[] dp = new int[n];
     Arrays.fill(dp, -1);
-    int ans = recur(a, 0, n - 1, dp);
-    for (int i = n-1; i >= 0; i--) {
-      System.out.println(dp[i]);
-    }
+    int ans = activitySelect(a, 0, dp);
     return ans;
   }
-
-  public static void main(String[] args) throws IOException {
-    File f = new File(args[0]);
+  
+  //get the data from the file and store it in an array
+ private activity[] getData(String filename) throws IOException {
+    File f = new File(filename);
     Scanner scanner = new Scanner(f);
     int n = scanner.nextInt();
     activity[] a = new activity[n];
@@ -62,16 +80,28 @@ class activitySelection {
       a[i] = new activity(start, end, weight);
     }
     scanner.close();
-    activitySelection obj = new activitySelection();
-    int ans = obj.activitySel(a);
-    System.out.println(ans);
-    String s = f.getName();
-    String absolutePath = f.getAbsolutePath();
+    return a;
+  }
+  //write the output to a file
+  private void writeOutputToFile(int ans, String s, String absolutePath) throws IOException {
     String output = s.substring(0, s.length() - 4) + ".output.txt";
     absolutePath = absolutePath.substring(0, absolutePath.length() - s.length());
     absolutePath = absolutePath + output;
     FileWriter fw = new FileWriter(absolutePath);
     fw.write(String.valueOf(ans));
     fw.close();
+  }
+
+
+  public static void main(String[] args) throws IOException {
+    File f = new File(args[0]);
+    activity[] a = new activitySelection().getData(args[0]);
+    activitySelection obj = new activitySelection();
+    int ans = obj.activitySel(a);
+    System.out.println(ans);
+    String s = f.getName();
+    String absolutePath = f.getAbsolutePath();
+    new activitySelection().writeOutputToFile(ans, s, absolutePath);
+
   }
 }
